@@ -1,0 +1,48 @@
+﻿@model IEnumerable<SimpleBankSystem.ViewModels.Account.Transaction>
+
+
+@{
+    ViewData["Title"] = "Transactions";
+}
+
+<h2>Transactions</h2>
+<hr />
+<div class="row">
+    <div class="col-md-12">
+        <table class="table table-condensed table-bordered table-striped">
+            <thead>
+                <tr>
+                    <td style="width: 33.33%">Amount</td>
+                    <td style="width: 33.33%">Remarks</td>
+                    <td style="width: 33.33%">Date</td>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var trans in Model)
+                {
+                    <tr>
+                        <td>
+                            @if(trans.CreditAccountNumber.HasValue)
+                            {
+                                <span>(@trans.Amount.ToString("N2"))</span>
+                            }
+                            else
+                            {
+                                <span>@trans.Amount.ToString("N2")</span>
+                            }
+                        </td>
+                        <td>@Html.Raw(trans.Remarks)</td>
+                        <td>@trans.DateCreated</td>
+                    </tr>
+                }
+                @if(Model.Count() == 0)
+                {
+                    <tr>
+                        <td colspan="3" class="text-center"><i>No Transactions Yet</i></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
