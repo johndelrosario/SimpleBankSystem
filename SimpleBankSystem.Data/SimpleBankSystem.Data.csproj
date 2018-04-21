@@ -16,10 +16,10 @@
     <Compile Remove="Migrations\20180416001603_Included transactions.cs" />
     <Compile Remove="Migrations\20180416002111_Removed identity from account number.cs" />
     <Compile Remove="Migrations\20180418001730_Included concurrency token to transaction.cs" />
+    <Compile Remove="Migrations\20180421011616_Revised balance for user.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNet.Identity.Core" Version="2.2.1" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="2.0.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="2.0.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="2.0.2" />

@@ -1,13 +1,18 @@
 ﻿@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore;
+@using System.Linq;
 @using SimpleBankSystem.Data.Identity;
-@using SimpleBankSystem.Data.Contexts;
+
 
 @inject SignInManager<User> SignInManager
 @inject UserManager UserManager
-@inject SimpleBankContext Context
 
-@{ 
-    var currentUser = await UserManager.GetUserAsync(User);
+@{
+    var userId = UserManager.GetUserId(User);
+    var currentUser = await UserManager.Users
+                                        .Include(u => u.DebitTransactions)
+                                        .Include(u => u.CreditTransactions)
+                                        .FirstAsync(u => u.Id == userId);
 }
 
 @if (SignInManager.IsSignedIn(User))
@@ -17,7 +22,7 @@
             <li>
                 <a asp-controller="Account" asp-action="Transactions">
                     <div>Hello @UserManager.GetUserName(User)!</div>
-                    <div>Balance: @currentUser.GetBalance(Context).ToString("N2")</div>
+                    <div>Balance: @currentUser.Balance.ToString("N2")</div>
                 </a>
             </li>
             <li>

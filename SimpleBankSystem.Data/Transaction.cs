@@ -25,8 +25,10 @@ namespace SimpleBankSystem.Data
 
         public DateTime DateCreated { get; set; }
 
+        [InverseProperty("DebitTransactions")]
         public User DebitAccountUser { get; set; }
 
+        [InverseProperty("CreditTransactions")]
         public User CreditAccountUser { get; set; }
     }
 }

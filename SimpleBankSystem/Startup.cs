@@ -27,7 +27,8 @@ namespace SimpleBankSystem
         {
             services.AddMvc();
             services.AddDbContext<SimpleBankContext>(options =>
-                options.UseSqlServer(Data.Constants.ConnectionString));
+                options.UseSqlServer(Data.Constants.ConnectionString), 
+                ServiceLifetime.Transient);
 
             services
                 .AddIdentity<Data.Identity.User, IdentityRole>(options =>
@@ -44,7 +45,7 @@ namespace SimpleBankSystem
                 .AddDefaultTokenProviders();
 
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-            services.AddScoped(typeof(Data.Repositories.TransactionRepository));
+            services.AddTransient<Data.Repositories.TransactionRepository>();
             services.AddSession();
             services.AddRouting(options =>
             {

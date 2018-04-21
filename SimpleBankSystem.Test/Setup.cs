@@ -12,7 +12,7 @@ namespace SimpleBankSystem.Test
 {
     public class Setup
     {
-        private readonly IServiceProvider _serviceProvider;
+        public IServiceProvider ServiceProvider { get; private set; }
 
         public Setup()
         {
@@ -22,7 +22,7 @@ namespace SimpleBankSystem.Test
             {
                 options.UseInMemoryDatabase(Data.Constants.DatabaseName);
                 options.ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning));
-            });
+            }, ServiceLifetime.Transient);
 
             services
                 .AddIdentity<Data.Identity.User, IdentityRole>(options =>
@@ -39,14 +39,9 @@ namespace SimpleBankSystem.Test
                 .AddDefaultTokenProviders();
 
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-            services.AddScoped(typeof(Data.Repositories.TransactionRepository));
+            services.AddTransient(typeof(Data.Repositories.TransactionRepository));
 
-            _serviceProvider = services.BuildServiceProvider();
-        }
-
-        public T GetService<T>()
-        {
-            return _serviceProvider.GetRequiredService<T>();
+            ServiceProvider = services.BuildServiceProvider();
         }
     }
 }

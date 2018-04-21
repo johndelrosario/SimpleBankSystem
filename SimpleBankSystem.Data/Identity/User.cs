@@ -17,23 +17,28 @@ namespace SimpleBankSystem.Data.Identity
 
         public DateTime CreatedDate { get; set; }
 
-        public double GetBalance(SimpleBankContext context)
+        [NotMapped]
+        public double Balance
         {
-            var balance = 0d;
-
-            foreach (var trans in context.Transactions.Where(tr => tr.CreditAccount == Id || tr.DebitAccount == Id))
+            get
             {
-                if (trans.DebitAccount == Id)
-                {
-                    balance += trans.Amount;
-                }
-                else if (trans.CreditAccount == Id)
-                {
-                    balance -= trans.Amount;
-                }
-            }
+                var balance = 0d;
+                var totalDebit = 0d;
+                var totalCredit = 0d;
 
-            return balance;
+                if (DebitTransactions != null && CreditTransactions != null)
+                {
+                    totalDebit = DebitTransactions.Sum(tr => tr.Amount);
+                    totalCredit = CreditTransactions.Sum(tr => tr.Amount);
+                    balance = totalDebit - totalCredit;
+                }
+
+                return balance;
+            }
         }
+
+        public ICollection<Transaction> DebitTransactions { get; set; }
+
+        public ICollection<Transaction> CreditTransactions { get; set; }
     }
 }
