@@ -2,6 +2,7 @@
 using SimpleBankSystem.Data.Contexts;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
@@ -17,8 +18,11 @@ namespace SimpleBankSystem.Data.Identity
 
         public DateTime CreatedDate { get; set; }
 
+        [ConcurrencyCheck]
+        public double Balance { get; set; }
+
         [NotMapped]
-        public double Balance
+        public double ComputedBalance
         {
             get
             {

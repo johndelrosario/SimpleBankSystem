@@ -11,9 +11,10 @@ using System;
 namespace SimpleBankSystem.Data.Migrations
 {
     [DbContext(typeof(SimpleBankContext))]
-    partial class SimpleBankContextModelSnapshot : ModelSnapshot
+    [Migration("20180424233321_Changed balance to computed")]
+    partial class Changedbalancetocomputed
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

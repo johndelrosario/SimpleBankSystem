@@ -20,8 +20,7 @@ namespace SimpleBankSystem.Test
 
             services.AddDbContext<SimpleBankContext>(options =>
             {
-                options.UseInMemoryDatabase(Data.Constants.DatabaseName);
-                options.ConfigureWarnings(w => w.Ignore(InMemoryEventId.TransactionIgnoredWarning));
+                options.UseSqlServer(Data.Constants.TestConnectionString);
             }, ServiceLifetime.Transient);
 
             services

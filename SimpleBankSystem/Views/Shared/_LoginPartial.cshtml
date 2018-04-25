@@ -7,16 +7,14 @@
 @inject SignInManager<User> SignInManager
 @inject UserManager UserManager
 
-@{
+@if (SignInManager.IsSignedIn(User))
+{
     var userId = UserManager.GetUserId(User);
     var currentUser = await UserManager.Users
                                         .Include(u => u.DebitTransactions)
                                         .Include(u => u.CreditTransactions)
                                         .FirstAsync(u => u.Id == userId);
-}
 
-@if (SignInManager.IsSignedIn(User))
-{
     <form asp-area="" asp-controller="Account" asp-action="LogOff" method="post" id="logoutForm" class="navbar-right">
         <ul class="nav navbar-nav navbar-right">
             <li>

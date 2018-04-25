@@ -52,7 +52,13 @@ namespace SimpleBankSystem.Test
                                                 .Include(u => u.DebitTransactions)
                                                 .Include(u => u.CreditTransactions)
                                                 .FirstAsync();
-                var result = await transactionRepository.DoTransaction(TransactionRepository.TransactionType.Deposit, amount, targetUser.Id, null, "Deposit");
+                var result = await transactionRepository.DoTransaction(new TransactionRepository.TransactionEntry
+                {
+                    Type = TransactionRepository.TransactionType.Deposit,
+                    Amount = amount,
+                    DebitAccount = targetUser.Id,
+                    Remarks = "Deposit"
+                });
 
                 Assert.IsTrue(result.IsSuccess);
             }
@@ -74,7 +80,13 @@ namespace SimpleBankSystem.Test
                                                     .Include(u => u.DebitTransactions)
                                                     .Include(u => u.CreditTransactions)
                                                     .FirstAsync();
-                    await transactionRepository.DoTransaction(TransactionRepository.TransactionType.Deposit, amount, targetUser.Id, null, "Deposit");
+                    await transactionRepository.DoTransaction(new TransactionRepository.TransactionEntry
+                    {
+                        Type = TransactionRepository.TransactionType.Deposit,
+                        Amount = amount,
+                        DebitAccount = targetUser.Id,
+                        Remarks = "Deposit"
+                    });
                 }
 
                 using (var context = scope.ServiceProvider.GetService<SimpleBankContext>())
@@ -103,7 +115,13 @@ namespace SimpleBankSystem.Test
                                                 .Include(u => u.DebitTransactions)
                                                 .Include(u => u.CreditTransactions)
                                                 .FirstAsync();
-                var result = await transactionRepository.DoTransaction(TransactionRepository.TransactionType.Withdraw, amount, null, targetUser.Id, "Withdraw");
+                var result = await transactionRepository.DoTransaction(new TransactionRepository.TransactionEntry
+                {
+                    Type = TransactionRepository.TransactionType.Withdraw,
+                    Amount = amount,
+                    CreditAccount = targetUser.Id,
+                    Remarks = "Withdraw"
+                });
 
                 Assert.IsTrue(result.IsSuccess);
             }
@@ -125,7 +143,13 @@ namespace SimpleBankSystem.Test
                                                 .Include(u => u.DebitTransactions)
                                                 .Include(u => u.CreditTransactions)
                                                 .FirstAsync();
-                    await transactionRepository.DoTransaction(TransactionRepository.TransactionType.Withdraw, amount, null, targetUser.Id, "Withdraw");
+                    await transactionRepository.DoTransaction(new TransactionRepository.TransactionEntry
+                    {
+                        Type = TransactionRepository.TransactionType.Withdraw,
+                        Amount = amount,
+                        CreditAccount = targetUser.Id,
+                        Remarks = "Withdraw"
+                    });
                 }
 
                 using (var context = scope.ServiceProvider.GetService<SimpleBankContext>())
@@ -154,7 +178,13 @@ namespace SimpleBankSystem.Test
                                             .Include(u => u.DebitTransactions)
                                             .Include(u => u.CreditTransactions)
                                             .FirstAsync();
-                var result = await transactionRepository.DoTransaction(TransactionRepository.TransactionType.Withdraw, amount, null, targetUser.Id, "Withdraw");
+                var result = await transactionRepository.DoTransaction(new TransactionRepository.TransactionEntry
+                {
+                    Type = TransactionRepository.TransactionType.Withdraw,
+                    Amount = amount,
+                    CreditAccount = targetUser.Id,
+                    Remarks = "Withdraw"
+                });
 
                 Assert.IsFalse(result.IsSuccess);
             }
@@ -179,7 +209,14 @@ namespace SimpleBankSystem.Test
                                                 .Include(u => u.DebitTransactions)
                                                 .Include(u => u.CreditTransactions)
                                                 .LastAsync();
-                var result = await transactionRepository.DoTransaction(TransactionRepository.TransactionType.Transfer, amount, transferUser.Id, targetUser.Id, "Transfer");
+                var result = await transactionRepository.DoTransaction(new TransactionRepository.TransactionEntry
+                {
+                    Type = TransactionRepository.TransactionType.Transfer,
+                    Amount = amount,
+                    DebitAccount = transferUser.Id,
+                    CreditAccount = targetUser.Id,
+                    Remarks = "Transfer"
+                });
 
                 Assert.IsTrue(result.IsSuccess);
             }
@@ -200,7 +237,14 @@ namespace SimpleBankSystem.Test
                                                 .Include(u => u.DebitTransactions)
                                                 .Include(u => u.CreditTransactions)
                                                 .FirstAsync();
-                var result = await transactionRepository.DoTransaction(TransactionRepository.TransactionType.Transfer, amount, "invalidtestuser", targetUser.Id, "Transfer");
+                var result = await transactionRepository.DoTransaction(new TransactionRepository.TransactionEntry
+                {
+                    Type = TransactionRepository.TransactionType.Transfer,
+                    Amount = amount,
+                    DebitAccount = "invalidtestuser",
+                    CreditAccount = targetUser.Id,
+                    Remarks = "Transfer"
+                });
 
                 Assert.IsFalse(result.IsSuccess);
             }
@@ -221,7 +265,14 @@ namespace SimpleBankSystem.Test
                                                 .Include(u => u.DebitTransactions)
                                                 .Include(u => u.CreditTransactions)
                                                 .FirstAsync();
-                var result = await transactionRepository.DoTransaction(TransactionRepository.TransactionType.Transfer, amount, targetUser.Id, targetUser.Id, "Transfer");
+                var result = await transactionRepository.DoTransaction(new TransactionRepository.TransactionEntry
+                {
+                    Type = TransactionRepository.TransactionType.Transfer,
+                    Amount = amount,
+                    DebitAccount = targetUser.Id,
+                    CreditAccount = targetUser.Id,
+                    Remarks = "Transfer"
+                });
 
                 Assert.IsFalse(result.IsSuccess);
             }
@@ -248,7 +299,14 @@ namespace SimpleBankSystem.Test
                                                     .Include(u => u.CreditTransactions)
                                                     .LastAsync();
 
-                    await transactionRepository.DoTransaction(TransactionRepository.TransactionType.Transfer, amount, transferUser.Id, targetUser.Id, "Transfer");
+                    await transactionRepository.DoTransaction(new TransactionRepository.TransactionEntry
+                    {
+                        Type = TransactionRepository.TransactionType.Transfer,
+                        Amount = amount,
+                        DebitAccount = transferUser.Id,
+                        CreditAccount = targetUser.Id,
+                        Remarks = "Transfer"
+                    });
                 }
 
                 using (var context = scope.ServiceProvider.GetService<SimpleBankContext>())
@@ -279,7 +337,7 @@ namespace SimpleBankSystem.Test
             {
                 Task[] taskArr =
                 {
-                    Task.Factory.StartNew(async () =>
+                    Task.Run(async () =>
                     {
                         using (var context = scope.ServiceProvider.GetService<SimpleBankContext>())
                         using (var transactionRepository = scope.ServiceProvider.GetService<TransactionRepository>())
@@ -289,10 +347,16 @@ namespace SimpleBankSystem.Test
                                                             .Include(u => u.CreditTransactions)
                                                             .FirstAsync();
 
-                            await transactionRepository.DoTransaction(TransactionRepository.TransactionType.Withdraw, amount, null, targetUser.Id, "Withdraw", 5000);
+                            await transactionRepository.DoTransaction(new TransactionRepository.TransactionEntry
+                            {
+                                Type = TransactionRepository.TransactionType.Withdraw,
+                                Amount = amount,
+                                CreditAccount = targetUser.Id,
+                                Remarks = "Withdraw"
+                            }, 3000);
                         }
                     }),
-                    Task.Factory.StartNew(async () =>
+                    Task.Run(async () =>
                     {
                         using (var context = scope.ServiceProvider.GetService<SimpleBankContext>())
                         using (var transactionRepository = scope.ServiceProvider.GetService<TransactionRepository>())
@@ -302,13 +366,37 @@ namespace SimpleBankSystem.Test
                                                             .Include(u => u.CreditTransactions)
                                                             .FirstAsync();
 
-                            await transactionRepository.DoTransaction(TransactionRepository.TransactionType.Withdraw, amount, null, targetUser.Id, "Withdraw", 0);
+                            await transactionRepository.DoTransaction(new TransactionRepository.TransactionEntry
+                            {
+                                Type = TransactionRepository.TransactionType.Withdraw,
+                                Amount = amount,
+                                CreditAccount = targetUser.Id,
+                                Remarks = "Withdraw"
+                            }, 0);
+                        }
+                    }),
+                    Task.Run(async () =>
+                    {
+                        using (var context = scope.ServiceProvider.GetService<SimpleBankContext>())
+                        using (var transactionRepository = scope.ServiceProvider.GetService<TransactionRepository>())
+                        {
+                            var targetUser = await context.Users
+                                                            .Include(u => u.DebitTransactions)
+                                                            .Include(u => u.CreditTransactions)
+                                                            .FirstAsync();
+
+                            await transactionRepository.DoTransaction(new TransactionRepository.TransactionEntry
+                            {
+                                Type = TransactionRepository.TransactionType.Withdraw,
+                                Amount = amount,
+                                CreditAccount = targetUser.Id,
+                                Remarks = "Withdraw"
+                            }, 1500);
                         }
                     }),
                 };
 
                 await Task.WhenAll(taskArr);
-
                 using (var context = scope.ServiceProvider.GetService<SimpleBankContext>())
                 {
                     var targetUser = await context.Users
@@ -316,7 +404,7 @@ namespace SimpleBankSystem.Test
                                                     .Include(u => u.CreditTransactions)
                                                     .FirstAsync();
 
-                    Assert.IsTrue(targetUser.Balance >= 0);
+                    Assert.IsTrue(targetUser.Balance == 0, $"Balance is {targetUser.Balance}");
                 }
             }
         }
@@ -332,7 +420,7 @@ namespace SimpleBankSystem.Test
             {
                 Task[] taskArr =
                 {
-                    Task.Factory.StartNew(async () =>
+                    Task.Run(async () =>
                     {
                         using (var context = scope.ServiceProvider.GetService<SimpleBankContext>())
                         using (var transactionRepository = scope.ServiceProvider.GetService<TransactionRepository>())
@@ -346,10 +434,17 @@ namespace SimpleBankSystem.Test
                                                             .Include(u => u.CreditTransactions)
                                                             .LastAsync();
 
-                            await transactionRepository.DoTransaction(TransactionRepository.TransactionType.Transfer, amount, transferUser.Id, targetUser.Id, "Transfer", 5000);
+                            await transactionRepository.DoTransaction(new TransactionRepository.TransactionEntry
+                            {
+                                Type = TransactionRepository.TransactionType.Transfer,
+                                Amount = amount,
+                                DebitAccount = transferUser.Id,
+                                CreditAccount = targetUser.Id,
+                                Remarks = "Transfer"
+                            }, 3000);
                         }
                     }),
-                    Task.Factory.StartNew(async () =>
+                    Task.Run(async () =>
                     {
                         using (var context = scope.ServiceProvider.GetService<SimpleBankContext>())
                         using (var transactionRepository = scope.ServiceProvider.GetService<TransactionRepository>())
@@ -358,13 +453,43 @@ namespace SimpleBankSystem.Test
                                                             .Include(u => u.DebitTransactions)
                                                             .Include(u => u.CreditTransactions)
                                                             .FirstAsync();
-
                             var transferUser = await context.Users
                                                             .Include(u => u.DebitTransactions)
                                                             .Include(u => u.CreditTransactions)
                                                             .LastAsync();
 
-                            await transactionRepository.DoTransaction(TransactionRepository.TransactionType.Transfer, amount, transferUser.Id, targetUser.Id, "Transfer", 0);
+                            await transactionRepository.DoTransaction(new TransactionRepository.TransactionEntry
+                            {
+                                Type = TransactionRepository.TransactionType.Transfer,
+                                Amount = amount,
+                                DebitAccount = transferUser.Id,
+                                CreditAccount = targetUser.Id,
+                                Remarks = "Transfer"
+                            }, 0);
+                        }
+                    }),
+                    Task.Run(async () =>
+                    {
+                        using (var context = scope.ServiceProvider.GetService<SimpleBankContext>())
+                        using (var transactionRepository = scope.ServiceProvider.GetService<TransactionRepository>())
+                        {
+                            var targetUser = await context.Users
+                                                            .Include(u => u.DebitTransactions)
+                                                            .Include(u => u.CreditTransactions)
+                                                            .FirstAsync();
+                            var transferUser = await context.Users
+                                                            .Include(u => u.DebitTransactions)
+                                                            .Include(u => u.CreditTransactions)
+                                                            .LastAsync();
+
+                            await transactionRepository.DoTransaction(new TransactionRepository.TransactionEntry
+                            {
+                                Type = TransactionRepository.TransactionType.Transfer,
+                                Amount = amount,
+                                DebitAccount = transferUser.Id,
+                                CreditAccount = targetUser.Id,
+                                Remarks = "Transfer"
+                            }, 1500);
                         }
                     }),
                 };
@@ -383,8 +508,8 @@ namespace SimpleBankSystem.Test
                                                     .Include(u => u.CreditTransactions)
                                                     .LastAsync();
 
-                    Assert.IsTrue(targetUser.Balance >= 0);
-                    Assert.IsTrue(transferUser.Balance == (baseBalance + amount));
+                    Assert.IsTrue(targetUser.Balance == 0, $"Transferer balance is {targetUser.Balance}");
+                    Assert.IsTrue(transferUser.Balance == (baseBalance + amount), $"Transferee balance is {transferUser.Balance}");
                 }
             }
         }
@@ -397,15 +522,15 @@ namespace SimpleBankSystem.Test
                 {
                     UserName = "Test",
                     AccountName = "Test",
-                    AccountNumber = 1,
-                    CreatedDate = DateTime.Now
+                    CreatedDate = DateTime.Now,
+                    Balance = baseBalance
                 },
                 new User
                 {
                     UserName = "Test2",
                     AccountName = "Test2",
-                    AccountNumber = 1,
-                    CreatedDate = DateTime.Now
+                    CreatedDate = DateTime.Now,
+                    Balance = baseBalance
                 }
             };
 
@@ -413,6 +538,8 @@ namespace SimpleBankSystem.Test
             {
                 var userManager = scope.ServiceProvider.GetService<UserManager>();
                 var context = scope.ServiceProvider.GetService<SimpleBankContext>();
+                await context.Database.EnsureDeletedAsync();
+                await context.Database.EnsureCreatedAsync();
 
                 foreach (var user in userList)
                 {

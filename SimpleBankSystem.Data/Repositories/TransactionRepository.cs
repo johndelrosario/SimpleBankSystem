@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SimpleBankSystem.Data.Contexts;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,8 +12,6 @@ namespace SimpleBankSystem.Data.Repositories
 {
     public class TransactionRepository : IDisposable
     {
-        private static readonly SemaphoreSlim _transLock = new SemaphoreSlim(1, 1);
-
         private SimpleBankContext Context { get; set; }
 
         public TransactionRepository(SimpleBankContext context)
@@ -20,65 +19,77 @@ namespace SimpleBankSystem.Data.Repositories
             Context = context;
         }
 
-        public async Task<TransactionResult> DoTransaction(TransactionType type, double amount, string debitAccount, string creditAccount, string remarks = null, int sleep = 0)
+        public async Task<TransactionResult> DoTransaction(TransactionEntry entry, int sleep = 0)
         {
-            try
+            using (var trans = Context.Database.BeginTransaction())
             {
-                await (_transLock.WaitAsync());
-                using (var trans = Context.Database.BeginTransaction(System.Data.IsolationLevel.Serializable))
+                try
                 {
-                    try
+                    var debitUser = await Context.Users
+                                                    .Include(u => u.DebitTransactions)
+                                                    .Include(u => u.CreditTransactions)
+                                                    .FirstOrDefaultAsync(u => u.Id == entry.DebitAccount);
+                    var creditUser = await Context.Users
+                                                    .Include(u => u.DebitTransactions)
+                                                    .Include(u => u.CreditTransactions)
+                                                    .FirstOrDefaultAsync(u => u.Id == entry.CreditAccount);
+
+                    Thread.Sleep(sleep);
+
+                    if ((entry.Type == TransactionType.Deposit && debitUser == null) ||
+                       (entry.Type == TransactionType.Withdraw && creditUser == null) ||
+                       (entry.Type == TransactionType.Transfer && (debitUser == null || creditUser == null)) ||
+                       (entry.Type == TransactionType.Transfer && (debitUser.Id == creditUser.Id)))
                     {
-                        var debitUser = await Context.Users
-                                                        .Include(u => u.DebitTransactions)
-                                                        .Include(u => u.CreditTransactions)
-                                                        .FirstOrDefaultAsync(u => u.Id == debitAccount);
-                        var creditUser = await Context.Users
-                                                        .Include(u => u.DebitTransactions)
-                                                        .Include(u => u.CreditTransactions)
-                                                        .FirstOrDefaultAsync(u => u.Id == creditAccount);
-
-                        if ((type == TransactionType.Deposit && debitUser == null) ||
-                           (type == TransactionType.Withdraw && creditUser == null) ||
-                           (type == TransactionType.Transfer && (debitUser == null || creditUser == null)) ||
-                           (type == TransactionType.Transfer && (debitUser.Id == creditUser.Id)))
-                        {
-                            return new TransactionResult(false, "Invalid transaction");
-                        }
-
-                        if (creditUser != null)
-                        {
-                            Thread.Sleep(sleep);
-                            if (amount > creditUser.Balance)
-                            {
-                                return new TransactionResult(false, "Insufficient balance");
-                            }
-                        }
-
-                        Context.Transactions.Add(new Transaction
-                        {
-                            Amount = amount,
-                            DebitAccount = debitAccount,
-                            CreditAccount = creditAccount,
-                            DateCreated = DateTime.Now,
-                            Remarks = remarks
-                        });
-
-                        await Context.SaveChangesAsync();
-                        trans.Commit();
-
-                        return new TransactionResult(true, "Transaction success");
+                        return new TransactionResult(false, "Invalid transaction");
                     }
-                    catch (Exception)
+
+                    if (creditUser != null)
                     {
-                        trans.Rollback();
-                        throw;
+                        if (entry.Amount > creditUser.Balance)
+                        {
+                            return new TransactionResult(false, "Insufficient balance");
+                        }
                     }
+
+                    Context.Transactions.Add(new Transaction
+                    {
+                        Amount = entry.Amount,
+                        DebitAccount = entry.DebitAccount,
+                        CreditAccount = entry.CreditAccount,
+                        DateCreated = DateTime.Now,
+                        Remarks = entry.Remarks
+                    });
+
+                    await Context.SaveChangesAsync();
+
+                    if (debitUser != null)
+                    {
+                        debitUser.Balance = debitUser.ComputedBalance;
+                        Context.Entry(debitUser).State = EntityState.Modified;
+                    }
+
+                    if (creditUser != null)
+                    {
+                        creditUser.Balance = creditUser.ComputedBalance;
+                        Context.Entry(creditUser).State = EntityState.Modified;
+                    }
+
+                    await Context.SaveChangesAsync();
+
+                    trans.Commit();
+                    return new TransactionResult(true, "Transaction success");
                 }
-            }
-            finally
-            {
-                _transLock.Release();
+                catch (DbUpdateConcurrencyException)
+                {
+                    trans.Rollback();
+                    return new TransactionResult(false, "Concurrent transaction.");
+                }
+                catch (Exception e)
+                {
+                    trans.Rollback();
+                    throw;
+                }
             }
         }
 
@@ -110,6 +121,19 @@ namespace SimpleBankSystem.Data.Repositories
             public string Message { get; set; }
 
             public bool IsSuccess { get; set; }
+        }
+
+        public class TransactionEntry
+        {
+            public TransactionType Type { get; set; }
+
+            public double Amount { get; set; }
+
+            public string DebitAccount { get; set; }
+
+            public string CreditAccount { get; set; }
+
+            public string Remarks { get; set; }
         }
 
         public enum TransactionType

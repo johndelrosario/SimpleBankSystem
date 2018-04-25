@@ -9,5 +9,7 @@ namespace SimpleBankSystem.Data
         public static string DatabaseName => "SimpleBankSystem";
 
         public static string ConnectionString => $"Server=(localdb)\\mssqllocaldb;Database={DatabaseName};Trusted_Connection=True;MultipleActiveResultSets=true";
+
+        public static string TestConnectionString => $"Server=(localdb)\\mssqllocaldb;Database={DatabaseName}Test;Trusted_Connection=True;MultipleActiveResultSets=true";
     }
 }

@@ -19,6 +19,8 @@ namespace SimpleBankSystem.Data.Contexts
             base.OnModelCreating(builder);
 
             builder.Entity<User>().HasIndex(b => b.AccountNumber).IsUnique(true);
+            builder.Entity<User>().Property(b => b.AccountNumber).Metadata.AfterSaveBehavior = 
+                Microsoft.EntityFrameworkCore.Metadata.PropertySaveBehavior.Ignore;
         }
 
         public DbSet<Transaction> Transactions { get; set; }

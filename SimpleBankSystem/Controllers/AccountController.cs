@@ -119,7 +119,13 @@ namespace SimpleBankSystem.Controllers
             {
                 try
                 {
-                    var result = await TransactionRepository.DoTransaction(TransactionRepository.TransactionType.Deposit, viewModel.Amount, CurrentUser.Id, null, "Deposit");
+                    var result = await TransactionRepository.DoTransaction(new TransactionRepository.TransactionEntry
+                    {
+                        Type = TransactionRepository.TransactionType.Deposit,
+                        Amount = viewModel.Amount,
+                        DebitAccount = CurrentUser.Id,
+                        Remarks = "Deposit"
+                    });
 
                     if (result.IsSuccess)
                     {
@@ -162,7 +168,13 @@ namespace SimpleBankSystem.Controllers
             {
                 try
                 {
-                    var result = await TransactionRepository.DoTransaction(TransactionRepository.TransactionType.Withdraw, viewModel.Amount, null, CurrentUser.Id, "Withdraw");
+                    var result = await TransactionRepository.DoTransaction(new TransactionRepository.TransactionEntry
+                    {
+                        Type = TransactionRepository.TransactionType.Withdraw,
+                        Amount = viewModel.Amount,
+                        CreditAccount = CurrentUser.Id,
+                        Remarks = "Withdraw"
+                    });
 
                     if (result.IsSuccess)
                     {
@@ -210,7 +222,14 @@ namespace SimpleBankSystem.Controllers
                     if (targetUser != null && targetUser.Id != CurrentUser.Id)
                     {
                         viewModel.Remarks += $"{(!string.IsNullOrWhiteSpace(viewModel.Remarks) ? "<br />" : string.Empty)}Transferred by {CurrentUser.AccountName} to {targetUser.AccountName}";
-                        var result = await TransactionRepository.DoTransaction(TransactionRepository.TransactionType.Transfer, viewModel.Amount, targetUser.Id, CurrentUser.Id, viewModel.Remarks);
+                        var result = await TransactionRepository.DoTransaction(new TransactionRepository.TransactionEntry
+                        {
+                            Type = TransactionRepository.TransactionType.Transfer,
+                            Amount = viewModel.Amount,
+                            DebitAccount = targetUser.Id,
+                            CreditAccount = CurrentUser.Id,
+                            Remarks = viewModel.Remarks
+                        });
 
                         if (result.IsSuccess)
                         {

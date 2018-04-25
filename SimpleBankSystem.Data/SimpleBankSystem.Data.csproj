@@ -17,6 +17,7 @@
     <Compile Remove="Migrations\20180416002111_Removed identity from account number.cs" />
     <Compile Remove="Migrations\20180418001730_Included concurrency token to transaction.cs" />
     <Compile Remove="Migrations\20180421011616_Revised balance for user.cs" />
+    <Compile Remove="Migrations\20180424055206_Included row version for transactions.cs" />
   </ItemGroup>
 
   <ItemGroup>
