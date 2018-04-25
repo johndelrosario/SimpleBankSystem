@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Identity;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SimpleBankSystem.Attributes;
 using SimpleBankSystem.Data.Contexts;
 using SimpleBankSystem.Data.Identity;
@@ -27,9 +27,13 @@ namespace SimpleBankSystem.Controllers
             UserManager = userManager;
         }
 
-        public async void GetCurrentUser()
+        public void GetCurrentUser()
         {
-            CurrentUser = await UserManager.GetUserAsync(HttpContext.User);
+            var id = HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            CurrentUser = Context.Users
+                                    .Include(u => u.DebitTransactions)
+                                    .Include(u => u.CreditTransactions)
+                                    .FirstOrDefault(u => u.Id == id);
         }
     }
 }

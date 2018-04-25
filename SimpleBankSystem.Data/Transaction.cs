@@ -10,6 +10,11 @@ namespace SimpleBankSystem.Data
 {
     public class Transaction
     {
+        public Transaction()
+        {
+            DateCreated = DateTime.Now;
+        }
+
         [Key]
         public long Id { get; set; }
 

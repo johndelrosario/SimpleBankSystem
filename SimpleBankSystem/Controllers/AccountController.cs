@@ -5,9 +5,9 @@ using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using SimpleBankSystem.Data.Contexts;
 using SimpleBankSystem.Data.Identity;
-using SimpleBankSystem.Data.Repositories;
 using SimpleBankSystem.ViewModels.Account;
 
 namespace SimpleBankSystem.Controllers
@@ -16,16 +16,13 @@ namespace SimpleBankSystem.Controllers
     public class AccountController : BaseController
     {
         private SignInManager<User> SignInManager { get; set; }
-        private TransactionRepository TransactionRepository { get; set; }
 
         public AccountController(
             SimpleBankContext sbContext,
             UserManager sbUserManager,
-            SignInManager<User> signInManager,
-            TransactionRepository transactionRepository) : base(sbContext, sbUserManager)
+            SignInManager<User> signInManager) : base(sbContext, sbUserManager)
         {
             SignInManager = signInManager;
-            TransactionRepository = transactionRepository;
         }
 
         [AllowAnonymous]
@@ -119,28 +116,23 @@ namespace SimpleBankSystem.Controllers
             {
                 try
                 {
-                    var result = await TransactionRepository.DoTransaction(new TransactionRepository.TransactionEntry
+                    var message = string.Empty;
+                    if(CurrentUser.Deposit(viewModel.Amount, out message))
                     {
-                        Type = TransactionRepository.TransactionType.Deposit,
-                        Amount = viewModel.Amount,
-                        DebitAccount = CurrentUser.Id,
-                        Remarks = "Deposit"
-                    });
+                        Context.Entry(CurrentUser).State = EntityState.Modified;
+                        await Context.SaveChangesAsync();
 
-                    if (result.IsSuccess)
-                    {
                         ModelState.Clear();
-
                         viewModel = new Deposit
                         {
                             IsSuccess = true,
-                            Message = $"{viewModel.Amount} deposited sucessfully into the account",
+                            Message = message,
                         };
                     }
                     else
                     {
                         viewModel.IsSuccess = false;
-                        viewModel.Message = result.Message;
+                        viewModel.Message = message;
                     }
                 }
                 catch (Exception e)
@@ -168,29 +160,29 @@ namespace SimpleBankSystem.Controllers
             {
                 try
                 {
-                    var result = await TransactionRepository.DoTransaction(new TransactionRepository.TransactionEntry
+                    var message = string.Empty;
+                    if (CurrentUser.Withdraw(viewModel.Amount, out message))
                     {
-                        Type = TransactionRepository.TransactionType.Withdraw,
-                        Amount = viewModel.Amount,
-                        CreditAccount = CurrentUser.Id,
-                        Remarks = "Withdraw"
-                    });
+                        Context.Entry(CurrentUser).State = EntityState.Modified;
+                        await Context.SaveChangesAsync();
 
-                    if (result.IsSuccess)
-                    {
                         ModelState.Clear();
-
                         viewModel = new Withdraw
                         {
                             IsSuccess = true,
-                            Message = $"{viewModel.Amount} withdrawn sucessfully from the account",
+                            Message = message,
                         };
                     }
                     else
                     {
                         viewModel.IsSuccess = false;
-                        viewModel.Message = result.Message;
+                        viewModel.Message = message;
                     }
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    viewModel.IsSuccess = false;
+                    viewModel.Message = "Concurrent transaction detected. Please refresh the page and try again.";
                 }
                 catch (Exception e)
                 {
@@ -217,41 +209,35 @@ namespace SimpleBankSystem.Controllers
             {
                 try
                 {
-                    var targetUser = Context.Users.FirstOrDefault(us => us.AccountNumber == viewModel.AccountNumber);
+                    var message = string.Empty;
+                    var targetUser = Context.Users
+                                            .Include(us => us.DebitTransactions)
+                                            .Include(us => us.CreditTransactions)
+                                            .FirstOrDefault(us => us.AccountNumber == viewModel.AccountNumber);
 
-                    if (targetUser != null && targetUser.Id != CurrentUser.Id)
+                    if(CurrentUser.TransferToUser(viewModel.Amount, targetUser, viewModel.Remarks, out message))
                     {
-                        viewModel.Remarks += $"{(!string.IsNullOrWhiteSpace(viewModel.Remarks) ? "<br />" : string.Empty)}Transferred by {CurrentUser.AccountName} to {targetUser.AccountName}";
-                        var result = await TransactionRepository.DoTransaction(new TransactionRepository.TransactionEntry
-                        {
-                            Type = TransactionRepository.TransactionType.Transfer,
-                            Amount = viewModel.Amount,
-                            DebitAccount = targetUser.Id,
-                            CreditAccount = CurrentUser.Id,
-                            Remarks = viewModel.Remarks
-                        });
+                        Context.Entry(CurrentUser).State = EntityState.Modified;
+                        Context.Entry(targetUser).State = EntityState.Modified;
+                        await Context.SaveChangesAsync();
 
-                        if (result.IsSuccess)
+                        ModelState.Clear();
+                        viewModel = new Transfer
                         {
-                            ModelState.Clear();
-
-                            viewModel = new Transfer
-                            {
-                                IsSuccess = true,
-                                Message = $"{viewModel.Amount} transferred sucessfully to account {viewModel.AccountNumber}",
-                            };
-                        }
-                        else
-                        {
-                            viewModel.IsSuccess = false;
-                            viewModel.Message = result.Message;
-                        }
+                            IsSuccess = true,
+                            Message = message,
+                        };
                     }
                     else
                     {
                         viewModel.IsSuccess = false;
-                        viewModel.Message = targetUser == null ? "Invalid account number" : "Cannot transfer to own account.";
+                        viewModel.Message = message;
                     }
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    viewModel.IsSuccess = false;
+                    viewModel.Message = "Concurrent transaction detected. Please refresh the page and try again.";
                 }
                 catch (Exception e)
                 {
@@ -263,9 +249,9 @@ namespace SimpleBankSystem.Controllers
             return View(viewModel);
         }
 
-        public async Task<IActionResult> Transactions()
+        public IActionResult Transactions()
         {
-            var transactions = await TransactionRepository.GetTransactions(CurrentUser.Id);
+            var transactions = CurrentUser.GetTransactions();
 
             var viewModel = transactions.Select(tr => Transaction.MapToDbTransaction(tr))
                                         .ToList();

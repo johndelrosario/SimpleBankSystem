@@ -45,7 +45,6 @@ namespace SimpleBankSystem
                 .AddDefaultTokenProviders();
 
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-            services.AddTransient<Data.Repositories.TransactionRepository>();
             services.AddSession();
             services.AddRouting(options =>
             {

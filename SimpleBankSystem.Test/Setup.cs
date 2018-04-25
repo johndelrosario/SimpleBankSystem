@@ -38,8 +38,6 @@ namespace SimpleBankSystem.Test
                 .AddDefaultTokenProviders();
 
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-            services.AddTransient(typeof(Data.Repositories.TransactionRepository));
-
             ServiceProvider = services.BuildServiceProvider();
         }
     }
