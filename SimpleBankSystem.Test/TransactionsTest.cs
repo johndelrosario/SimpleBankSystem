@@ -14,268 +14,399 @@ namespace SimpleBankSystem.Test
     [TestClass]
     public class TransactionsTest
     {
-        private double baseBalance = 100;
+        private readonly double _baseBalance = 100;
 
         [TestMethod]
-        public async Task CanGetBalance()
+        public void ShouldGetSameInitialUserBalance()
         {
-            var setup = new Setup();
-            await CreateUsers(setup);
-
-            using (var scope = setup.ServiceProvider.CreateScope())
-            using (var context = scope.ServiceProvider.GetService<SimpleBankContext>())
+            var user = new User
             {
-                var targetUser = await context.Users
-                                                .Include(u => u.DebitTransactions)
-                                                .Include(u => u.CreditTransactions)
-                                                .FirstAsync();
+                AccountName = "Test",
+                AccountNumber = 1,
+                Balance = _baseBalance
+            };
 
-                Assert.IsTrue(targetUser.Balance == baseBalance);
-            }
+            Assert.IsTrue(user.Balance == _baseBalance);
         }
 
         [TestMethod]
-        public async Task CanDepositToUser()
+        public void ShouldAllowDepositPositiveAmountToUser()
         {
-            var setup = new Setup();
-            await CreateUsers(setup);
-            var amount = 10;
-
-            using (var scope = setup.ServiceProvider.CreateScope())
-            using (var context = scope.ServiceProvider.GetService<SimpleBankContext>())
+            var amount = 100;
+            var user = new User
             {
-                var targetUser = await context.Users
-                                                .Include(u => u.DebitTransactions)
-                                                .Include(u => u.CreditTransactions)
-                                                .FirstAsync();
-                var message = string.Empty;
-                var isSuccess = targetUser.Deposit(amount, out message);
+                AccountName = "Test",
+                AccountNumber = 1,
+                Balance = _baseBalance
+            };
 
-                Assert.IsTrue(isSuccess);
-            }
+            var message = string.Empty;
+            var isSuccess = user.Deposit(amount, out message);
+
+            Assert.IsTrue(isSuccess);
         }
 
         [TestMethod]
-        public async Task DepositToUser()
+        public void ShouldNotAllowDepositNegativeAmountToUser()
         {
-            var setup = new Setup();
-            await CreateUsers(setup);
-            var amount = 10;
-
-            using (var scope = setup.ServiceProvider.CreateScope())
+            var amount = -100;
+            var user = new User
             {
-                using (var context = scope.ServiceProvider.GetService<SimpleBankContext>())
-                {
-                    var targetUser = await context.Users
-                                                    .Include(u => u.DebitTransactions)
-                                                    .Include(u => u.CreditTransactions)
-                                                    .FirstAsync();
-                    var message = string.Empty;
-                    var isSuccess = targetUser.Deposit(amount, out message);
+                AccountName = "Test",
+                AccountNumber = 1,
+                Balance = _baseBalance
+            };
 
-                    await context.SaveChangesAsync();
-                }
+            var message = string.Empty;
+            var isSuccess = user.Deposit(amount, out message);
 
-                using (var context = scope.ServiceProvider.GetService<SimpleBankContext>())
-                {
-                    var targetUser = await context.Users
-                                                    .Include(u => u.DebitTransactions)
-                                                    .Include(u => u.CreditTransactions)
-                                                    .FirstAsync();
-                    Assert.IsTrue(targetUser.Balance == (baseBalance + amount));
-                }
-            }
+            Assert.IsFalse(isSuccess);
         }
 
         [TestMethod]
-        public async Task CanWithdrawToUser()
+        public void ShouldRetainBalanceOnDepositNegativeAmountToUser()
         {
-            var setup = new Setup();
-            await CreateUsers(setup);
-            var amount = 10;
-
-            using (var scope = setup.ServiceProvider.CreateScope())
-            using (var context = scope.ServiceProvider.GetService<SimpleBankContext>())
+            var amount = -100;
+            var user = new User
             {
-                var targetUser = await context.Users
-                                                .Include(u => u.DebitTransactions)
-                                                .Include(u => u.CreditTransactions)
-                                                .FirstAsync();
-                var message = string.Empty;
-                var isSuccess = targetUser.Withdraw(amount, out message);
+                AccountName = "Test",
+                AccountNumber = 1,
+                Balance = _baseBalance
+            };
 
-                Assert.IsTrue(isSuccess);
-            }
+            var message = string.Empty;
+            user.Deposit(amount, out message);
+
+            Assert.IsTrue(user.Balance == _baseBalance);
         }
 
         [TestMethod]
-        public async Task WithdrawToUser()
+        public void ShouldUpdateBalanceOnDepositPositiveAmountToUser()
         {
-            var setup = new Setup();
-            await CreateUsers(setup);
-            var amount = 10;
-
-            using (var scope = setup.ServiceProvider.CreateScope())
+            var amount = 100;
+            var user = new User
             {
-                using (var context = scope.ServiceProvider.GetService<SimpleBankContext>())
-                {
-                    var targetUser = await context.Users
-                                                .Include(u => u.DebitTransactions)
-                                                .Include(u => u.CreditTransactions)
-                                                .FirstAsync();
-                    var message = string.Empty;
-                    targetUser.Withdraw(amount, out message);
+                AccountName = "Test",
+                AccountNumber = 1,
+                Balance = _baseBalance
+            };
 
-                    await context.SaveChangesAsync();
-                }
+            var message = string.Empty;
+            user.Deposit(amount, out message);
 
-                using (var context = scope.ServiceProvider.GetService<SimpleBankContext>())
-                {
-                    var targetUser = await context.Users
-                                                .Include(u => u.DebitTransactions)
-                                                .Include(u => u.CreditTransactions)
-                                                .FirstAsync();
-                    Assert.IsTrue(targetUser.Balance == (baseBalance - amount));
-                }
-            }
+            Assert.IsTrue(user.Balance == (_baseBalance + amount));
         }
 
         [TestMethod]
-        public async Task CannotWithdrawMoreThanBalance()
+        public void ShouldAllowWithdrawOfPositiveAmountWithinBalanceFromUser()
         {
-            var setup = new Setup();
-            await CreateUsers(setup);
+            var amount = 100;
+            var user = new User
+            {
+                AccountName = "Test",
+                AccountNumber = 1,
+                Balance = _baseBalance
+            };
+
+            var message = string.Empty;
+            var isSuccess = user.Withdraw(amount, out message);
+
+            Assert.IsTrue(isSuccess);
+        }
+
+        [TestMethod]
+        public void ShouldNotAllowWithdrawNegativeAmountFromUser()
+        {
+            var amount = -100;
+            var user = new User
+            {
+                AccountName = "Test",
+                AccountNumber = 1,
+                Balance = _baseBalance
+            };
+
+            var message = string.Empty;
+            var isSuccess = user.Withdraw(amount, out message);
+
+            Assert.IsFalse(isSuccess);
+        }
+
+        [TestMethod]
+        public void ShouldUpdateBalanceOnPositiveWithdrawWithinBalanceFromUser()
+        {
+            var amount = 100;
+            var user = new User
+            {
+                AccountName = "Test",
+                AccountNumber = 1,
+                Balance = _baseBalance
+            };
+
+            var message = string.Empty;
+            user.Withdraw(amount, out message);
+
+            Assert.IsTrue(user.Balance == _baseBalance - amount);
+        }
+
+        [TestMethod]
+        public void ShouldRetainBalanceOnWithdrawNegativeAmountFromUser()
+        {
+            var amount = -100;
+            var user = new User
+            {
+                AccountName = "Test",
+                AccountNumber = 1,
+                Balance = _baseBalance
+            };
+
+            var message = string.Empty;
+            user.Withdraw(amount, out message);
+
+            Assert.IsTrue(user.Balance == _baseBalance);
+        }
+
+        [TestMethod]
+        public void ShouldNotAllowWithdrawMoreThanBalanceFromUser()
+        {
             var amount = 200;
-
-            using (var scope = setup.ServiceProvider.CreateScope())
-            using (var context = scope.ServiceProvider.GetService<SimpleBankContext>())
+            var user = new User
             {
-                var targetUser = await context.Users
-                                            .Include(u => u.DebitTransactions)
-                                            .Include(u => u.CreditTransactions)
-                                            .FirstAsync();
-                var message = string.Empty;
-                var isSuccess = targetUser.Withdraw(amount, out message);
+                AccountName = "Test",
+                AccountNumber = 1,
+                Balance = _baseBalance
+            };
 
-                Assert.IsFalse(isSuccess);
-            }
+            var message = string.Empty;
+            var isSuccess = user.Withdraw(amount, out message);
+
+            Assert.IsFalse(isSuccess);
         }
 
         [TestMethod]
-        public async Task CanTransferToUser()
+        public void ShouldRetainBalanceOnWithdrawMoreThanBalanceFromUser()
         {
-            var setup = new Setup();
-            await CreateUsers(setup);
-            var amount = 10;
-
-            using (var scope = setup.ServiceProvider.CreateScope())
-            using (var context = scope.ServiceProvider.GetService<SimpleBankContext>())
+            var amount = 200;
+            var user = new User
             {
-                var targetUser = await context.Users
-                                                .Include(u => u.DebitTransactions)
-                                                .Include(u => u.CreditTransactions)
-                                                .FirstAsync();
-                var transferUser = await context.Users
-                                                .Include(u => u.DebitTransactions)
-                                                .Include(u => u.CreditTransactions)
-                                                .LastAsync();
-                var message = string.Empty;
-                var isSuccess = targetUser.TransferToUser(amount, transferUser, string.Empty, out message);
+                AccountName = "Test",
+                AccountNumber = 1,
+                Balance = _baseBalance
+            };
 
-                Assert.IsTrue(isSuccess);
-            }
+            var message = string.Empty;
+            user.Withdraw(amount, out message);
+
+            Assert.IsTrue(user.Balance == _baseBalance);
         }
 
         [TestMethod]
-        public async Task CannotTransferToInvalidUser()
+        public void ShouldAllowTransferOfPositiveAmountWithinBalanceToUser()
         {
-            var setup = new Setup();
-            await CreateUsers(setup);
-            var amount = 10;
-
-            using (var scope = setup.ServiceProvider.CreateScope())
-            using (var context = scope.ServiceProvider.GetService<SimpleBankContext>())
+            var amount = 100;
+            var user = new User
             {
-                var targetUser = await context.Users
-                                                .Include(u => u.DebitTransactions)
-                                                .Include(u => u.CreditTransactions)
-                                                .FirstAsync();
-                var message = string.Empty;
-                var isSuccess = targetUser.TransferToUser(amount, null, string.Empty, out message);
+                AccountName = "Test",
+                AccountNumber = 1,
+                Balance = _baseBalance
+            };
+            var user2 = new User
+            {
+                AccountName = "Test2",
+                AccountNumber = 2,
+                Balance = _baseBalance
+            };
 
-                await context.SaveChangesAsync();
+            var message = string.Empty;
+            var isSuccess = user.TransferToUser(amount, user2, string.Empty, out message);
 
-                Assert.IsFalse(isSuccess);
-            }
+            Assert.IsTrue(isSuccess);
         }
 
         [TestMethod]
-        public async Task CannotTransferToSameUser()
+        public void ShouldNotAllowTransferOfPositiveAmountOfMoreThanBalanceOfUser()
         {
-            var setup = new Setup();
-            await CreateUsers(setup);
-            var amount = 10;
-
-            using (var scope = setup.ServiceProvider.CreateScope())
-            using (var context = scope.ServiceProvider.GetService<SimpleBankContext>())
+            var amount = 200;
+            var user = new User
             {
-                var targetUser = await context.Users
-                                                .Include(u => u.DebitTransactions)
-                                                .Include(u => u.CreditTransactions)
-                                                .FirstAsync();
-                var message = string.Empty;
-                var isSuccess = targetUser.TransferToUser(amount, targetUser, string.Empty, out message);
+                AccountName = "Test",
+                AccountNumber = 1,
+                Balance = _baseBalance
+            };
+            var user2 = new User
+            {
+                AccountName = "Test2",
+                AccountNumber = 2,
+                Balance = _baseBalance
+            };
 
-                await context.SaveChangesAsync();
+            var message = string.Empty;
+            var isSuccess = user.TransferToUser(amount, user2, string.Empty, out message);
 
-                Assert.IsFalse(isSuccess);
-            }
+            Assert.IsFalse(isSuccess);
         }
 
         [TestMethod]
-        public async Task TransferToUser()
+        public void ShouldNotAllowTransferOfNegativeAmountToUser()
         {
-            var setup = new Setup();
-            await CreateUsers(setup);
-            var amount = 10;
-
-            using (var scope = setup.ServiceProvider.CreateScope())
+            var amount = 100;
+            var user = new User
             {
-                using (var context = scope.ServiceProvider.GetService<SimpleBankContext>())
-                {
-                    var targetUser = await context.Users
-                                                .Include(u => u.DebitTransactions)
-                                                .Include(u => u.CreditTransactions)
-                                                .FirstAsync();
-                    var transferUser = await context.Users
-                                                    .Include(u => u.DebitTransactions)
-                                                    .Include(u => u.CreditTransactions)
-                                                    .LastAsync();
-                    var message = string.Empty;
-                    var isSuccess = targetUser.TransferToUser(amount, transferUser, string.Empty, out message);
+                AccountName = "Test",
+                AccountNumber = 1,
+                Balance = _baseBalance
+            };
+            var user2 = new User
+            {
+                AccountName = "Test2",
+                AccountNumber = 2,
+                Balance = _baseBalance
+            };
 
-                    await context.SaveChangesAsync();
-                }
+            var message = string.Empty;
+            var isSuccess = user.TransferToUser(amount, user2, string.Empty, out message);
 
-                using (var context = scope.ServiceProvider.GetService<SimpleBankContext>())
-                {
-                    var targetUser = await context.Users
-                                                .Include(u => u.DebitTransactions)
-                                                .Include(u => u.CreditTransactions)
-                                                .FirstAsync();
-                    var transferUser = await context.Users
-                                                    .Include(u => u.DebitTransactions)
-                                                    .Include(u => u.CreditTransactions)
-                                                    .LastAsync();
-
-                    Assert.IsTrue(targetUser.Balance == (baseBalance - amount));
-                    Assert.IsTrue(transferUser.Balance == (baseBalance + amount));
-                }
-            }
+            Assert.IsTrue(isSuccess);
         }
 
         [TestMethod]
-        public async Task WithdrawSimultaneously()
+        public void ShouldReceiveAmountOnTransferOfPositiveAmountToUser()
+        {
+            var amount = 100;
+            var user = new User
+            {
+                AccountName = "Test",
+                AccountNumber = 1,
+                Balance = _baseBalance
+            };
+            var user2 = new User
+            {
+                AccountName = "Test2",
+                AccountNumber = 2,
+                Balance = _baseBalance
+            };
+
+            var message = string.Empty;
+            user.TransferToUser(amount, user2, string.Empty, out message);
+
+            Assert.IsTrue(user2.Balance == _baseBalance + amount);
+        }
+
+        [TestMethod]
+        public void ShouldUpdateBalanceOnTransferOfPositiveAmountFromUser()
+        {
+            var amount = 100;
+            var user = new User
+            {
+                AccountName = "Test",
+                AccountNumber = 1,
+                Balance = _baseBalance
+            };
+            var user2 = new User
+            {
+                AccountName = "Test2",
+                AccountNumber = 2,
+                Balance = _baseBalance
+            };
+
+            var message = string.Empty;
+            user.TransferToUser(amount, user2, string.Empty, out message);
+
+            Assert.IsTrue(user.Balance == _baseBalance - amount);
+        }
+
+        [TestMethod]
+        public void ShouldRetainBalanceOnTransferOfMoreThanBalanceOfUser()
+        {
+            var amount = 200;
+            var user = new User
+            {
+                AccountName = "Test",
+                AccountNumber = 1,
+                Balance = _baseBalance
+            };
+            var user2 = new User
+            {
+                AccountName = "Test2",
+                AccountNumber = 2,
+                Balance = _baseBalance
+            };
+
+            var message = string.Empty;
+            user.TransferToUser(amount, user2, string.Empty, out message);
+
+            Assert.IsTrue(user.Balance == _baseBalance);
+        }
+
+        [TestMethod]
+        public void ShouldNotTransferToInvalidUser()
+        {
+            var amount = 100;
+            var user = new User
+            {
+                AccountName = "Test",
+                AccountNumber = 1,
+                Balance = _baseBalance
+            };
+
+            var message = string.Empty;
+            var isSuccess = user.TransferToUser(amount, null, string.Empty, out message);
+
+            Assert.IsFalse(isSuccess);
+        }
+
+        [TestMethod]
+        public void ShouldRetainBalanceOnTransferToInvalidUser()
+        {
+            var amount = 100;
+            var user = new User
+            {
+                AccountName = "Test",
+                AccountNumber = 1,
+                Balance = _baseBalance
+            };
+
+            var message = string.Empty;
+            user.TransferToUser(amount, null, string.Empty, out message);
+
+            Assert.IsTrue(user.Balance == _baseBalance);
+        }
+
+        [TestMethod]
+        public void ShouldNotTransferToSameUser()
+        {
+            var amount = 100;
+            var user = new User
+            {
+                AccountName = "Test",
+                AccountNumber = 1,
+                Balance = _baseBalance
+            };
+
+            var message = string.Empty;
+            var isSuccess = user.TransferToUser(amount, user, string.Empty, out message);
+
+            Assert.IsFalse(isSuccess);
+        }
+
+        [TestMethod]
+        public void ShouldRetainBalanceOnTransferToSameUser()
+        {
+            var amount = 100;
+            var user = new User
+            {
+                AccountName = "Test",
+                AccountNumber = 1,
+                Balance = _baseBalance
+            };
+
+            var message = string.Empty;
+            user.TransferToUser(amount, user, string.Empty, out message);
+
+            Assert.IsTrue(user.Balance == _baseBalance);
+        }
+
+        [TestMethod]
+        public async Task ShouldCatchExceptionOnWithdrawSimultaneously()
         {
             var setup = new Setup();
             await CreateUsers(setup);
@@ -310,7 +441,7 @@ namespace SimpleBankSystem.Test
         }
 
         [TestMethod]
-        public async Task TransferSimultaneously()
+        public async Task ShouldCatchExceptionOnTransferSimultaneously()
         {
             var setup = new Setup();
             await CreateUsers(setup);
@@ -382,7 +513,7 @@ namespace SimpleBankSystem.Test
                                                         .Include(us => us.CreditTransactions)
                                                         .FirstOrDefaultAsync(us => us.Id == user.Id);
 
-                        targetUser.Deposit(baseBalance, out message);
+                        targetUser.Deposit(_baseBalance, out message);
                         await context.SaveChangesAsync();
                     }
 

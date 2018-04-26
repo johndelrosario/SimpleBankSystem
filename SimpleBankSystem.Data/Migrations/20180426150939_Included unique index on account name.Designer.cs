@@ -11,9 +11,10 @@ using System;
 namespace SimpleBankSystem.Data.Migrations
 {
     [DbContext(typeof(SimpleBankContext))]
-    partial class SimpleBankContextModelSnapshot : ModelSnapshot
+    [Migration("20180426150939_Included unique index on account name")]
+    partial class Includeduniqueindexonaccountname
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -135,7 +136,8 @@ namespace SimpleBankSystem.Data.Migrations
 
                     b.Property<int>("AccessFailedCount");
 
-                    b.Property<string>("AccountName");
+                    b.Property<string>("AccountName")
+                        .ValueGeneratedOnAdd();
 
                     b.Property<long>("AccountNumber")
                         .ValueGeneratedOnAdd();

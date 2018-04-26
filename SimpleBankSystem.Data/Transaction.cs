@@ -24,6 +24,7 @@ namespace SimpleBankSystem.Data
         [ForeignKey("CreditAccountUser")]
         public string CreditAccount { get; set; }
 
+        [Range(1, double.MaxValue)]
         public double Amount { get; set; }
 
         public string Remarks { get; set; }

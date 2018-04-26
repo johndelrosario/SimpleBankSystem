@@ -39,26 +39,45 @@ namespace SimpleBankSystem.Controllers
         {
             if (ModelState.IsValid)
             {
-                var user = viewModel.MapToUser();
-                var result = await UserManager.CreateAsync(user, viewModel.Password);
-
-                if (result.Succeeded)
+                try
                 {
-                    await SignInManager.SignInAsync(user, false);
+                    var user = viewModel.MapToUser();
+                    var result = await UserManager.CreateAsync(user, viewModel.Password);
 
-                    if (string.IsNullOrWhiteSpace(returnUrl))
+                    if (result.Succeeded)
                     {
-                        return RedirectToAction("index", "home");
+                        await SignInManager.SignInAsync(user, false);
+
+                        if (string.IsNullOrWhiteSpace(returnUrl))
+                        {
+                            return RedirectToAction("index", "home");
+                        }
+                        else
+                        {
+                            return RedirectToLocal(returnUrl);
+                        }
+                    }
+
+                    foreach (var error in result.Errors)
+                    {
+                        ModelState.AddModelError(error.Code, error.Description);
+                    }
+                }
+                catch (DbUpdateException e)
+                {
+                    if (e.InnerException != null && e.InnerException is System.Data.SqlClient.SqlException)
+                    {
+                        var ex = e.InnerException as System.Data.SqlClient.SqlException;
+                        ModelState.AddModelError("", "Account name already taken");
                     }
                     else
                     {
-                        return RedirectToLocal(returnUrl);
+                        ModelState.AddModelError("", e.Message);
                     }
                 }
-
-                foreach (var error in result.Errors)
+                catch (Exception e)
                 {
-                    ModelState.AddModelError(error.Code, error.Description);
+                    ModelState.AddModelError("", e.Message);
                 }
             }
 
@@ -117,7 +136,7 @@ namespace SimpleBankSystem.Controllers
                 try
                 {
                     var message = string.Empty;
-                    if(CurrentUser.Deposit(viewModel.Amount, out message))
+                    if (CurrentUser.Deposit(viewModel.Amount, out message))
                     {
                         Context.Entry(CurrentUser).State = EntityState.Modified;
                         await Context.SaveChangesAsync();
@@ -215,7 +234,7 @@ namespace SimpleBankSystem.Controllers
                                             .Include(us => us.CreditTransactions)
                                             .FirstOrDefault(us => us.AccountNumber == viewModel.AccountNumber);
 
-                    if(CurrentUser.TransferToUser(viewModel.Amount, targetUser, viewModel.Remarks, out message))
+                    if (CurrentUser.TransferToUser(viewModel.Amount, targetUser, viewModel.Remarks, out message))
                     {
                         Context.Entry(CurrentUser).State = EntityState.Modified;
                         Context.Entry(targetUser).State = EntityState.Modified;

@@ -17,6 +17,7 @@ namespace SimpleBankSystem.Data.Identity
         private readonly string _transactionDepositRemark = "Deposit";
         private readonly string _transactionWithdrawRemark = "Withdraw";
 
+        private readonly string _transactionInvalidAmountMessage = "Amount must be a positive number";
         private readonly string _transactionInsufficientBalanceMessage = "Insufficient balance";
         private readonly string _transactionTransferInvalidAccountMessage = "Invalid account number";
         private readonly string _transactionTransferInvalidSameAccountMessage = "Cannot transfer to own account.";
@@ -24,6 +25,8 @@ namespace SimpleBankSystem.Data.Identity
         public User()
         {
             CreatedDate = DateTime.Now;
+            DebitTransactions = new List<Transaction>();
+            CreditTransactions = new List<Transaction>();
         }
 
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
@@ -36,41 +39,28 @@ namespace SimpleBankSystem.Data.Identity
         [ConcurrencyCheck]
         public double Balance { get; set; }
 
-        [NotMapped]
-        public double ComputedBalance
-        {
-            get
-            {
-                var balance = 0d;
-                var totalDebit = 0d;
-                var totalCredit = 0d;
-
-                if (DebitTransactions != null && CreditTransactions != null)
-                {
-                    totalDebit = DebitTransactions.Sum(tr => tr.Amount);
-                    totalCredit = CreditTransactions.Sum(tr => tr.Amount);
-                    balance = totalDebit - totalCredit;
-                }
-
-                return balance;
-            }
-        }
-
         public bool Deposit(double amount, out string message, string remarks = "")
         {
             var isSuccess = false;
 
-            DebitTransactions.Add(new Transaction
+            if (amount <= 0)
             {
-                DebitAccount = Id,
-                Amount = amount,
-                Remarks = !string.IsNullOrWhiteSpace(remarks) ? remarks : _transactionDepositRemark
-            });
+                message = _transactionInvalidAmountMessage;
+            }
+            else
+            {
+                DebitTransactions.Add(new Transaction
+                {
+                    DebitAccount = Id,
+                    Amount = amount,
+                    Remarks = !string.IsNullOrWhiteSpace(remarks) ? remarks : _transactionDepositRemark
+                });
 
-            Balance = ComputedBalance;
+                Balance += amount;
 
-            message = string.Format(_transactionDepositSuccessMessage, amount);
-            isSuccess = true;
+                message = string.Format(_transactionDepositSuccessMessage, amount);
+                isSuccess = true;
+            }
 
             return isSuccess;
         }
@@ -79,7 +69,11 @@ namespace SimpleBankSystem.Data.Identity
         {
             var isSuccess = false;
 
-            if (amount > Balance)
+            if (amount <= 0)
+            {
+                message = _transactionInvalidAmountMessage;
+            }
+            else if (amount > Balance)
             {
                 message = _transactionInsufficientBalanceMessage;
             }
@@ -92,7 +86,7 @@ namespace SimpleBankSystem.Data.Identity
                     Remarks = !string.IsNullOrWhiteSpace(remarks) ? remarks : _transactionWithdrawRemark
                 });
 
-                Balance = ComputedBalance;
+                Balance -= amount;
 
                 message = string.Format(_transactionWithdrawSuccessMessage, amount);
                 isSuccess = true;
@@ -105,7 +99,11 @@ namespace SimpleBankSystem.Data.Identity
         {
             var isSuccess = false;
 
-            if (targetUser == null || targetUser.Id == Id)
+            if (amount <= 0)
+            {
+                message = _transactionInvalidAmountMessage;
+            }
+            else if (targetUser == null || targetUser.Id == Id)
             {
                 message = targetUser == null ? _transactionTransferInvalidAccountMessage : _transactionTransferInvalidSameAccountMessage;
             }
@@ -133,9 +131,9 @@ namespace SimpleBankSystem.Data.Identity
         }
 
         [ConcurrencyCheck]
-        public ICollection<Transaction> DebitTransactions { get; set; }
+        public virtual ICollection<Transaction> DebitTransactions { get; set; }
 
         [ConcurrencyCheck]
-        public ICollection<Transaction> CreditTransactions { get; set; }
+        public virtual ICollection<Transaction> CreditTransactions { get; set; }
     }
 }
